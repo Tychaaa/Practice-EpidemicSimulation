@@ -36,20 +36,6 @@ namespace Epidemic_Simulation
             random = new Random();          // Инициализация генератора случайных чисел
             people = new List<Person>();    // Инициализация списка объектов Person
 
-            // Создание объектов Person и добавление их в список
-            for (int i = 0; i < numberOfPeople; i++)
-            {
-                // Генерация случайной позиции внутри границ экрана
-                var position = new Vector2(random.Next(_graphics.PreferredBackBufferWidth), random.Next(_graphics.PreferredBackBufferHeight));
-                // Создание нового объекта Person
-                var person = new Person(position);
-                // Добавление объекта в список
-                people.Add(person);
-            }
-
-            // Заражение первого объекта в списке
-            people[0].Infect();
-
             // Вызов базового метода инициализации
             base.Initialize();
         }
@@ -61,6 +47,37 @@ namespace Epidemic_Simulation
             _spriteBatch = new SpriteBatch(GraphicsDevice);
             // Загрузка текстуры для объекта Person из каталога контента
             personTexture = Content.Load<Texture2D>("person");
+
+            // Создание объектов Person и добавление их в список
+            for (int i = 0; i < numberOfPeople; i++)
+            {
+                // Генерация случайной позиции внутри границ экрана
+                var position = GenerateRandomPosition(personTexture.Width, personTexture.Height);
+                // Создание нового объекта Person
+                var person = new Person(position, personTexture.Width);
+                // Добавление объекта в список
+                people.Add(person);
+            }
+
+            // Заражение первого объекта в списке
+            people[0].Infect();
+        }
+
+        // Метод для генерации случайной позиции внутри границ экрана с учетом размеров текстуры
+        private Vector2 GenerateRandomPosition(int textureWidth, int textureHeight)
+        {
+            // Генерация случайной координаты X
+            // Начинаем от половины ширины текстуры, чтобы текстура не выходила за левую границу
+            // и заканчиваем на расстоянии половины ширины текстуры от правой границы
+            int x = random.Next(textureWidth / 2, _graphics.PreferredBackBufferWidth - textureWidth / 2);
+
+            // Генерация случайной координаты Y
+            // Начинаем от половины высоты текстуры, чтобы текстура не выходила за верхнюю границу
+            // и заканчиваем на расстоянии половины высоты текстуры от нижней границы
+            int y = random.Next(textureHeight / 2, _graphics.PreferredBackBufferHeight - textureHeight / 2);
+
+            // Возвращаем сгенерированную случайную позицию как вектор
+            return new Vector2(x, y);
         }
 
         // Метод для обновления состояния игры
@@ -75,7 +92,7 @@ namespace Epidemic_Simulation
             {
                 var person = people[i];
                 // Обновление состояния и позиции объекта Person
-                person.Update(gameTime, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight, person.GetPosition());
+                person.Update(gameTime, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight, person.Position);
 
                 // Проверка столкновений и инфекций с другими объектами Person
                 for (int j = i + 1; j < people.Count; j++)
@@ -83,22 +100,7 @@ namespace Epidemic_Simulation
                     var otherPerson = people[j];
                     // Вычисление расстояния между двумя объектами Person
                     float distance = Vector2.Distance(person.Position, otherPerson.Position);
-
-                    // Если объекты сталкиваются (расстояние меньше суммы их радиусов)
-                    if (distance < person.Radius + otherPerson.Radius)
-                    {
-                        // Вычисление направления столкновения
-                        Vector2 collisionDirection = person.Position - otherPerson.Position;
-                        collisionDirection.Normalize();
-
-                        // Разделение объектов, чтобы предотвратить их наложение
-                        person.Position += collisionDirection * (person.Radius + otherPerson.Radius - distance) / 2;
-                        otherPerson.Position -= collisionDirection * (person.Radius + otherPerson.Radius - distance) / 2;
-
-                        // Изменение направления движения объектов после столкновения
-                        person.ChangeDirection(collisionDirection);
-                        otherPerson.ChangeDirection(-collisionDirection);
-                    }
+                    person.CheckCollision(otherPerson);
 
                     // Проверка условия заражения для первого объекта
                     if ((person.IsInfected || person.IsCarrier) && !otherPerson.IsInfected && !otherPerson.IsCarrier && distance < infectionRadius && random.NextDouble() < infectionChance)
@@ -116,8 +118,64 @@ namespace Epidemic_Simulation
                 }
             }
 
+            // Проверка и устранение застревания объектов в границах
+            CheckAndResolveBoundarySticking();
+
             // Вызов базового метода обновления
             base.Update(gameTime);
+        }
+
+        // Метод для проверки и устранения застревания объектов Person в границах экрана
+        private void CheckAndResolveBoundarySticking()
+        {
+            // Проход по каждому объекту Person в списке people
+            foreach (var person in people)
+            {
+                bool stuck = false;     // Флаг, указывающий, застрял ли объект
+
+                // Проверка застревания в левой или правой границе
+                if (person.Position.X - person.Radius <= 0)
+                {
+                    // Если объект застрял в левой границе, переместим его внутрь
+                    person.Position = new Vector2(person.Radius, person.Position.Y);
+                    // Установим направление движения в сторону от границы
+                    person.SetDirection(new Vector2(Math.Abs(person.GetDirection().X), person.GetDirection().Y)); // Направление в сторону от границы
+                    stuck = true;
+                }
+                else if (person.Position.X + person.Radius >= _graphics.PreferredBackBufferWidth)
+                {
+                    // Если объект застрял в правой границе, переместим его внутрь
+                    person.Position = new Vector2(_graphics.PreferredBackBufferWidth - person.Radius, person.Position.Y);
+                    // Установим направление движения в сторону от границы
+                    person.SetDirection(new Vector2(-Math.Abs(person.GetDirection().X), person.GetDirection().Y)); // Направление в сторону от границы
+                    stuck = true;
+                }
+
+                // Проверка застревания в верхней или нижней границе
+                if (person.Position.Y - person.Radius <= 0)
+                {
+                    // Если объект застрял в верхней границе, переместим его внутрь
+                    person.Position = new Vector2(person.Position.X, person.Radius);
+                    // Установим направление движения в сторону от границы
+                    person.SetDirection(new Vector2(person.GetDirection().X, Math.Abs(person.GetDirection().Y))); // Направление в сторону от границы
+                    stuck = true;
+                }
+                else if (person.Position.Y + person.Radius >= _graphics.PreferredBackBufferHeight)
+                {
+                    // Если объект застрял в нижней границе, переместим его внутрь
+                    person.Position = new Vector2(person.Position.X, _graphics.PreferredBackBufferHeight - person.Radius);
+                    // Установим направление движения в сторону от границы
+                    person.SetDirection(new Vector2(person.GetDirection().X, -Math.Abs(person.GetDirection().Y))); // Направление в сторону от границы
+                    stuck = true;
+                }
+
+                // Если объект застрял, скорректируем его направление случайным образом
+                if (stuck)
+                {
+                    Vector2 newDirection = new Vector2((float)random.NextDouble() * 2 - 1, (float)random.NextDouble() * 2 - 1);
+                    person.SetDirection(newDirection);
+                }
+            }
         }
 
         // Метод для рисования на экране

@@ -1,9 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Epidemic_Simulation
 {
@@ -23,7 +19,7 @@ namespace Epidemic_Simulation
         private static Random random = new Random();    // Генератор случайных чисел
 
         // Конструктор, инициализирующий объект в заданной позиции
-        public Person(Vector2 position)
+        public Person(Vector2 position, float textureWidth)
         {
             Position = position;    // Установка начальной позиции
 
@@ -31,11 +27,11 @@ namespace Epidemic_Simulation
             direction = new Vector2((float)random.NextDouble() * 2 - 1, (float)random.NextDouble() * 2 - 1);
             direction.Normalize();  // Нормализация вектора направления для единичной длины
 
-            speed = 70f;            // Установка скорости движения
-            Radius = 10f;           // Радиус каждого объекта равен 10 единицам
-            IsInfected = false;     // Инициализация состояния как незараженного
-            IsRecovered = false;    // Инициализация состояния как не выздоровевшего
-            IsCarrier = false;      // Инициализация состояния как неносителя
+            speed = 70f;                // Установка скорости движения
+            Radius = textureWidth / 2;  // Расчет радиуса на основе ширины текстуры
+            IsInfected = false;         // Инициализация состояния как незараженного
+            IsRecovered = false;        // Инициализация состояния как не выздоровевшего
+            IsCarrier = false;          // Инициализация состояния как неносителя
         }
 
         // Метод для заражения объекта
@@ -57,12 +53,6 @@ namespace Epidemic_Simulation
                 // Преобразование сгенерированного времени в объект TimeSpan
                 infectionTimeRemaining = TimeSpan.FromSeconds(infectionSeconds);
             }
-        }
-
-        // Метод для получения текущей позиции объекта
-        public Vector2 GetPosition()
-        {
-            return Position;
         }
 
         // Метод для обновления состояния объекта
@@ -106,23 +96,79 @@ namespace Epidemic_Simulation
             // Добавляем вектор смещения к текущей позиции (Position).
             Position += direction * speed * (float)gameTime.ElapsedGameTime.TotalSeconds;
 
+            // Проверка выхода за границы экрана
+            CheckBoundsCollision(screenWidth, screenHeight, position);
+        }
+
+        // Метод для проверки и обработки столкновений с границами экрана
+        private void CheckBoundsCollision(int screenWidth, int screenHeight, Vector2 position)
+        {
             // Проверка выхода за границы экрана и изменение направления при столкновении с границей по оси X
-            if (Position.X < Radius || Position.X > screenWidth - Radius)
+            if (Position.X - Radius <= 0 || Position.X + Radius >= screenWidth)
             {
-                // Инвертируем направление по оси X
-                direction.X *= -1;
-                // Ограничиваем позицию в пределах экрана
-                position.X = Math.Clamp(Position.X, Radius, screenWidth - Radius);
+                direction.X = -direction.X; // Инвертируем направление по оси X
+                position.X = Math.Clamp(Position.X, Radius, screenWidth - Radius); // Ограничиваем позицию в пределах экрана
             }
 
             // Проверка выхода за границы экрана и изменение направления при столкновении с границей по оси Y
-            if (Position.Y < Radius || Position.Y > screenHeight - Radius)
+            if (Position.Y - Radius <= 0 || Position.Y + Radius >= screenHeight)
             {
-                // Инвертируем направление по оси Y
-                direction.Y *= -1;
-                // Ограничиваем позицию в пределах экрана
-                position.Y = Math.Clamp(Position.Y, Radius, screenHeight - Radius);
+                direction.Y = -direction.Y; // Инвертируем направление по оси Y
+                position.Y = Math.Clamp(Position.Y, Radius, screenHeight - Radius); // Ограничиваем позицию в пределах экрана
             }
+        }
+
+        // Метод для проверки и обработки столкновений с другим объектом Person
+        public void CheckCollision(Person otherPerson)
+        {
+            // Вычисляем расстояние между центрами двух объектов
+            float distance = Vector2.Distance(this.Position, otherPerson.Position);
+
+            // Проверяем, пересекаются ли круги, описанные вокруг двух объектов
+            if (distance <= this.Radius + otherPerson.Radius)
+            {
+                // Если пересекаются, обрабатываем столкновение
+                HandleCollision(otherPerson, distance);
+            }
+        }
+
+        // Метод для обработки столкновения
+        private void HandleCollision(Person otherPerson, float distance)
+        {
+            // Вычисляем нормаль столкновения
+            Vector2 collisionNormal = this.Position - otherPerson.Position;
+            collisionNormal.Normalize();
+
+            // Вычисляем относительную скорость
+            Vector2 relativeVelocity = this.direction * this.speed - otherPerson.direction * otherPerson.speed;
+
+            // Вычисляем скорость вдоль нормали столкновения
+            float velocityAlongNormal = Vector2.Dot(relativeVelocity, collisionNormal);
+
+            // Если скорости расходятся, нет необходимости обрабатывать столкновение
+            if (velocityAlongNormal > 0)
+                return;
+
+            // Вычисляем коэффициент упругости (elasticity)
+            float elasticity = 1f; // Для абсолютно упругого столкновения
+
+            // Вычисляем импульс столкновения
+            float j = -(1 + elasticity) * velocityAlongNormal;
+            j /= (1 / this.Radius + 1 / otherPerson.Radius);
+
+            // Применяем импульс к каждому объекту
+            Vector2 impulse = j * collisionNormal;
+            this.direction += impulse / this.Radius;
+            otherPerson.direction -= impulse / otherPerson.Radius;
+
+            // Нормализуем направления
+            this.direction.Normalize();
+            otherPerson.direction.Normalize();
+
+            // Обновляем позиции, чтобы избежать застревания
+            float overlap = 0.5f * (this.Radius + otherPerson.Radius - distance);
+            this.Position += collisionNormal * overlap;
+            otherPerson.Position -= collisionNormal * overlap;
         }
 
         // Метод для изменения направления движения
@@ -136,6 +182,18 @@ namespace Epidemic_Simulation
         public void SetSpeed(float newSpeed)
         {
             speed = newSpeed;
+        }
+
+        // Публичный метод для получения и установки направления
+        public Vector2 GetDirection()
+        {
+            return direction;
+        }
+
+        public void SetDirection(Vector2 newDirection)
+        {
+            direction = newDirection;
+            direction.Normalize();
         }
     }
 }
