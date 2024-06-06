@@ -18,6 +18,7 @@ namespace Epidemic_Simulation
         int numberOfPeople = 100;       // Количество объектов Person
         float infectionRadius = 20f;    // Радиус заражения
         float infectionChance = 0.3f;   // Шанс заражения
+        float deathChance = 0.05f;      // Шанс смерти от инфекции
 
         // Конструктор класса Game1
         public Game1()
@@ -92,7 +93,7 @@ namespace Epidemic_Simulation
             {
                 var person = people[i];
                 // Обновление состояния и позиции объекта Person
-                person.Update(gameTime, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight, person.Position);
+                person.Update(gameTime, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight, person.Position, deathChance);
 
                 // Проверка столкновений и инфекций с другими объектами Person
                 for (int j = i + 1; j < people.Count; j++)
@@ -103,14 +104,14 @@ namespace Epidemic_Simulation
                     person.CheckCollision(otherPerson);
 
                     // Проверка условия заражения для первого объекта
-                    if ((person.IsInfected || person.IsCarrier) && !otherPerson.IsInfected && !otherPerson.IsCarrier && distance < infectionRadius && random.NextDouble() < infectionChance)
+                    if ((person.IsInfected || person.IsCarrier) && !otherPerson.IsInfected && !otherPerson.IsCarrier && !otherPerson.IsDead && distance < infectionRadius && random.NextDouble() < infectionChance)
                     {
                         // Заражение второго объекта
                         otherPerson.Infect();
                     }
 
                     // Проверка условия заражения для второго объекта
-                    if ((otherPerson.IsInfected || otherPerson.IsCarrier) && !person.IsInfected && !person.IsCarrier && distance < infectionRadius && random.NextDouble() < infectionChance)
+                    if ((otherPerson.IsInfected || otherPerson.IsCarrier) && !person.IsInfected && !person.IsCarrier && !person.IsDead && distance < infectionRadius && random.NextDouble() < infectionChance)
                     {
                         // Заражение первого объекта
                         person.Infect();
@@ -131,6 +132,9 @@ namespace Epidemic_Simulation
             // Проход по каждому объекту Person в списке people
             foreach (var person in people)
             {
+                if (person.IsDead)
+                    continue; // Пропускаем мертвых
+
                 bool stuck = false;     // Флаг, указывающий, застрял ли объект
 
                 // Проверка застревания в левой или правой границе
@@ -182,30 +186,57 @@ namespace Epidemic_Simulation
         protected override void Draw(GameTime gameTime)
         {
             // Очистка экрана заданным цветом (CornflowerBlue)
-            GraphicsDevice.Clear(Color.CornflowerBlue);
+            GraphicsDevice.Clear(Color.LightGray);
 
             // Начало рисования спрайтов
             _spriteBatch.Begin();
 
-            // Проход по каждому объекту Person в списке people
+            // Сначала рисуем мертвые объекты Person
             foreach (var person in people)
             {
-                // Определение цвета для рисования на основе состояния объекта Person
-                Color color = person.IsInfected ? Color.Red :                   // Красный, если объект заражен
-                              person.IsCarrier ? Color.LightPink :              // Светло-розовый, если объект носитель
-                              (person.IsRecovered ? Color.Gray : Color.White);  // Серый, если объект выздоровел, иначе белый
-                                                                                // Рисование объекта Person с заданной текстурой и цветом
-                _spriteBatch.Draw(
-                    personTexture,             // Текстура для рисования
-                    person.Position,           // Позиция объекта
-                    null,                      // Область текстуры для рисования (null - вся текстура)
-                    color,                     // Цвет для рисования
-                    0f,                        // Угол поворота (0 - без поворота)
-                    new Vector2(personTexture.Width / 2, personTexture.Height / 2), // Точка происхождения (центр текстуры)
-                    Vector2.One,               // Масштаб (Vector2.One - без изменения размера)
-                    SpriteEffects.None,        // Эффекты для спрайта (без эффектов)
-                    0f                         // Слой отрисовки (0 - самый нижний слой)
-                );
+                if (person.IsDead)
+                {
+                    // Определение цвета для рисования мертвого объекта (черный)
+                    Color color = Color.Black;
+
+                    // Рисование мертвого объекта Person с заданной текстурой и цветом
+                    _spriteBatch.Draw(
+                        personTexture,             // Текстура для рисования
+                        person.Position,           // Позиция объекта
+                        null,                      // Область текстуры для рисования (null - вся текстура)
+                        color,                     // Цвет для рисования
+                        0f,                        // Угол поворота (0 - без поворота)
+                        new Vector2(personTexture.Width / 2, personTexture.Height / 2), // Точка происхождения (центр текстуры)
+                        Vector2.One,               // Масштаб (Vector2.One - без изменения размера)
+                        SpriteEffects.None,        // Эффекты для спрайта (без эффектов)
+                        0f                         // Слой отрисовки (0 - самый нижний слой)
+                    );
+                }
+            }
+
+            // Затем рисуем все остальные объекты Person
+            foreach (var person in people)
+            {
+                if (!person.IsDead)
+                {
+                    // Определение цвета для рисования на основе состояния объекта Person
+                    Color color = person.IsInfected ? Color.Red :                   // Красный, если объект заражен
+                                  person.IsCarrier ? Color.LightPink :              // Светло-розовый, если объект носитель
+                                  (person.IsRecovered ? Color.Gray : Color.White);  // Серый, если объект выздоровел, иначе белый
+
+                    // Рисование живого объекта Person с заданной текстурой и цветом
+                    _spriteBatch.Draw(
+                        personTexture,             // Текстура для рисования
+                        person.Position,           // Позиция объекта
+                        null,                      // Область текстуры для рисования (null - вся текстура)
+                        color,                     // Цвет для рисования
+                        0f,                        // Угол поворота (0 - без поворота)
+                        new Vector2(personTexture.Width / 2, personTexture.Height / 2), // Точка происхождения (центр текстуры)
+                        Vector2.One,               // Масштаб (Vector2.One - без изменения размера)
+                        SpriteEffects.None,        // Эффекты для спрайта (без эффектов)
+                        0f                         // Слой отрисовки (0 - самый нижний слой)
+                    );
+                }
             }
 
             // Завершение рисования спрайтов

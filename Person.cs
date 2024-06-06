@@ -9,12 +9,16 @@ namespace Epidemic_Simulation
         public bool IsInfected { get; private set; }    // Флаг, указывающий, заражен ли объект
         public bool IsRecovered { get; private set; }   // Флаг, указывающий, выздоровел ли объект
         public bool IsCarrier { get; private set; }     // Флаг, указывающий, является ли объект носителем инфекции
+        public bool IsDead { get; private set; }        // Флаг, указывающий, мертв ли объект
         public float Radius { get; private set; }       // Радиус объекта
 
         private TimeSpan infectionTimeRemaining;        // Оставшееся время до конца инфекции
         private TimeSpan incubationTimeRemaining;       // Оставшееся время до окончания инкубационного периода
         private Vector2 direction;                      // Направление движения объекта
         private float speed;                            // Скорость движения объекта
+
+        private TimeSpan deathCheckInterval = TimeSpan.FromSeconds(5); // Интервал проверки на смерть
+        private TimeSpan timeSinceLastDeathCheck = TimeSpan.Zero;      // Время с последней проверки на смерть
 
         private static Random random = new Random();    // Генератор случайных чисел
 
@@ -32,13 +36,14 @@ namespace Epidemic_Simulation
             IsInfected = false;         // Инициализация состояния как незараженного
             IsRecovered = false;        // Инициализация состояния как не выздоровевшего
             IsCarrier = false;          // Инициализация состояния как неносителя
+            IsDead = false;             // Инициализация состояния как живого
         }
 
         // Метод для заражения объекта
         public void Infect()
         {
-            // Проверяем, что объект не заражен, не выздоровел и не является носителем
-            if (!IsInfected && !IsRecovered && !IsCarrier)
+            // Проверяем, что объект не заражен, не выздоровел и не является носителем или мертвым
+            if (!IsInfected && !IsRecovered && !IsCarrier && !IsDead)
             {
                 // Устанавливаем состояние объекта как носитель инфекции
                 IsCarrier = true;
@@ -56,13 +61,15 @@ namespace Epidemic_Simulation
         }
 
         // Метод для обновления состояния объекта
-        public void Update(GameTime gameTime, int screenWidth, int screenHeight, Vector2 position)
+        public void Update(GameTime gameTime, int screenWidth, int screenHeight, Vector2 position, float deathChance)
         {
+            // Если объект мертв, он не двигается
+            if (IsDead) { return; }
+
             // Если объект является носителем инфекции
             if (IsCarrier)
             {
                 // Уменьшаем оставшееся время инкубационного периода
-                // на время, прошедшее с последнего обновления
                 incubationTimeRemaining -= gameTime.ElapsedGameTime;
 
                 // Если инкубационный период закончился
@@ -77,8 +84,21 @@ namespace Epidemic_Simulation
             else if (IsInfected)
             {
                 // Уменьшаем оставшееся время инфекции
-                // на время, прошедшее с последнего обновления
                 infectionTimeRemaining -= gameTime.ElapsedGameTime;
+                timeSinceLastDeathCheck += gameTime.ElapsedGameTime;
+
+                // Проверка на смерть с интервалом
+                if (timeSinceLastDeathCheck >= deathCheckInterval)
+                {
+                    timeSinceLastDeathCheck = TimeSpan.Zero; // Сбрасываем время с последней проверки
+                    if (random.NextDouble() < deathChance)
+                    {
+                        // Объект умирает
+                        IsInfected = false;
+                        IsDead = true;
+                        return;
+                    }
+                }
 
                 // Если период инфекции закончился
                 if (infectionTimeRemaining <= TimeSpan.Zero)
@@ -121,6 +141,9 @@ namespace Epidemic_Simulation
         // Метод для проверки и обработки столкновений с другим объектом Person
         public void CheckCollision(Person otherPerson)
         {
+            if (IsDead || otherPerson.IsDead)
+                return; // Не проверяем коллизии с мертвыми объектами
+
             // Вычисляем расстояние между центрами двух объектов
             float distance = Vector2.Distance(this.Position, otherPerson.Position);
 
