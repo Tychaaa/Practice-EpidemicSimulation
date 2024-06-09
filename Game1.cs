@@ -11,20 +11,39 @@ namespace Epidemic_Simulation
         private GraphicsDeviceManager _graphics;    // Менеджер графических устройств
         private SpriteBatch _spriteBatch;           // Пакет для рисования спрайтов
 
-        Texture2D personTexture;        // Текстура для отображения объекта Person
-        List<Person> people;            // Список объектов Person
+        Texture2D personTexture;                    // Текстура для отображения объекта Person
+        private Texture2D backgroundTexture;        // Текстура для фона главного меню
+        private Texture2D startButtonTexture;       // Текстура кнопки "Start"
+        private Texture2D exitButtonTexture;        // Текстура кнопки "Exit"
+        List<Person> people;                        // Список объектов Person
 
-        Random random;                  // Генератор случайных чисел
-        int numberOfPeople = 100;       // Количество объектов Person
-        float infectionRadius = 20f;    // Радиус заражения
-        float infectionChance = 0.3f;   // Шанс заражения
-        float deathChance = 0.05f;      // Шанс смерти от инфекции
+        Random random;                              // Генератор случайных чисел
+        int numberOfPeople = 100;                   // Количество объектов Person
+        float infectionRadius = 20f;                // Радиус заражения
+        float infectionChance = 0.3f;               // Шанс заражения
+        float deathChance = 0.05f;                  // Шанс смерти от инфекции
+
+        private MainMenu mainMenu;                  // Экземпляр класса MainMenu
+
+        // Перечисление состояний игры
+        private enum GameState
+        {
+            MainMenu,    // Главное меню
+            Simulation   // Симуляция
+        }
+
+        // Текущее состояние игры, начальное состояние - главное меню
+        private GameState currentState = GameState.MainMenu;
 
         // Конструктор класса Game1
         public Game1()
         {
             // Инициализация менеджера графических устройств
-            _graphics = new GraphicsDeviceManager(this);
+            _graphics = new GraphicsDeviceManager(this)
+            {
+                PreferredBackBufferWidth = 1280,    // Установка ширины окна
+                PreferredBackBufferHeight = 720     // Установка высоты окна
+            };
             // Установка корневого каталога для контента
             Content.RootDirectory = "Content";
             // Включение видимости курсора мыши
@@ -48,6 +67,15 @@ namespace Epidemic_Simulation
             _spriteBatch = new SpriteBatch(GraphicsDevice);
             // Загрузка текстуры для объекта Person из каталога контента
             personTexture = Content.Load<Texture2D>("person");
+            // Загрузка текстуры кнопки "Start" из каталога контента
+            startButtonTexture = Content.Load<Texture2D>("startButton");
+            // Загрузка текстуры кнопки "Exit" из каталога контента
+            exitButtonTexture = Content.Load<Texture2D>("exitButton");
+            // Загрузка текстуры фона из каталога контента
+            backgroundTexture = Content.Load<Texture2D>("background");
+
+            // Создание экземпляра главного меню
+            mainMenu = new MainMenu(backgroundTexture, startButtonTexture, exitButtonTexture, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight);
 
             // Создание объектов Person и добавление их в список
             for (int i = 0; i < numberOfPeople; i++)
@@ -88,6 +116,36 @@ namespace Epidemic_Simulation
             if (Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
+            // Обработка логики в зависимости от текущего состояния игры
+            switch (currentState)
+            {
+                // Обновление состояния главного меню
+                case GameState.MainMenu:
+                    bool exitRequested;
+                    // Если выбрана опция "Start", переходим в состояние симуляции
+                    if (mainMenu.Update(out exitRequested))
+                    {
+                        currentState = GameState.Simulation;
+                    }
+                    // Если выбрана опция "Exit", выходим из игры
+                    else if (exitRequested)
+                    {
+                        Exit();
+                    }
+                    break;
+                // Обновление состояния симуляции
+                case GameState.Simulation:
+                    UpdateSimulation(gameTime);
+                    break;
+            }
+
+            // Вызов базового метода обновления
+            base.Update(gameTime);
+        }
+
+        // Метод для обновления состояния симуляции
+        private void UpdateSimulation(GameTime gameTime)
+        {
             // Обновление состояния каждого объекта Person
             for (int i = 0; i < people.Count; i++)
             {
@@ -121,9 +179,6 @@ namespace Epidemic_Simulation
 
             // Проверка и устранение застревания объектов в границах
             CheckAndResolveBoundarySticking();
-
-            // Вызов базового метода обновления
-            base.Update(gameTime);
         }
 
         // Метод для проверки и устранения застревания объектов Person в границах экрана
@@ -191,6 +246,29 @@ namespace Epidemic_Simulation
             // Начало рисования спрайтов
             _spriteBatch.Begin();
 
+            // Рисование в зависимости от текущего состояния игры
+            switch (currentState)
+            {
+                // Рисование главного меню
+                case GameState.MainMenu:
+                    mainMenu.Draw(_spriteBatch, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight);
+                    break;
+                // Рисование симуляции
+                case GameState.Simulation:
+                    DrawSimulation();
+                    break;
+            }
+
+            // Завершение рисования спрайтов
+            _spriteBatch.End();
+
+            // Вызов базового метода рисования
+            base.Draw(gameTime);
+        }
+
+        // Метод для рисования симуляции на экране
+        private void DrawSimulation()
+        {
             // Сначала рисуем мертвые объекты Person
             foreach (var person in people)
             {
@@ -238,12 +316,6 @@ namespace Epidemic_Simulation
                     );
                 }
             }
-
-            // Завершение рисования спрайтов
-            _spriteBatch.End();
-
-            // Вызов базового метода рисования
-            base.Draw(gameTime);
         }
     }
 }

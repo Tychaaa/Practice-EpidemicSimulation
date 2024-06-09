@@ -207,12 +207,13 @@ namespace Epidemic_Simulation
             speed = newSpeed;
         }
 
-        // Публичный метод для получения и установки направления
+        // Метод для получения направления
         public Vector2 GetDirection()
         {
             return direction;
         }
 
+        // Метод для установки направления
         public void SetDirection(Vector2 newDirection)
         {
             direction = newDirection;
