@@ -15,11 +15,15 @@ namespace Epidemic_Simulation
         private Texture2D backgroundTexture;        // Текстура для фона главного меню
         private Texture2D startButtonTexture;       // Текстура кнопки "Start"
         private Texture2D exitButtonTexture;        // Текстура кнопки "Exit"
-        List<Person> people;                        // Список объектов Person
+        private Texture2D rectangleTexture;         // Текстура для прямоугольника
+
+        private Rectangle simulationArea;           // Прямоугольник для области симуляции
 
         Random random;                              // Генератор случайных чисел
-        int numberOfPeople = 100;                   // Количество объектов Person
-        float infectionRadius = 20f;                // Радиус заражения
+
+        List<Person> people;                        // Список объектов Person
+        int numberOfPeople = 70;                    // Количество объектов Person
+        float infectionRadius = 30f;                // Радиус заражения
         float infectionChance = 0.3f;               // Шанс заражения
         float deathChance = 0.05f;                  // Шанс смерти от инфекции
 
@@ -73,6 +77,11 @@ namespace Epidemic_Simulation
             exitButtonTexture = Content.Load<Texture2D>("exitButton");
             // Загрузка текстуры фона из каталога контента
             backgroundTexture = Content.Load<Texture2D>("background");
+            // Загрузка текстуры прямоугольника
+            rectangleTexture = Content.Load<Texture2D>("simulationRectangle");
+
+            // Инициализация прямоугольника области симуляции с учётом толщины границ 4 пикселя
+            simulationArea = new Rectangle(5, 5, rectangleTexture.Width - 5, rectangleTexture.Height - 5);
 
             // Создание экземпляра главного меню
             mainMenu = new MainMenu(backgroundTexture, startButtonTexture, exitButtonTexture, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight);
@@ -88,8 +97,11 @@ namespace Epidemic_Simulation
                 people.Add(person);
             }
 
-            // Заражение первого объекта в списке
-            people[0].Infect();
+            // Заражение объектов в списке
+            for (int num = 0; num < 3; num++)
+            {
+                people[num].Infect(); 
+            }
         }
 
         // Метод для генерации случайной позиции внутри границ экрана с учетом размеров текстуры
@@ -98,12 +110,12 @@ namespace Epidemic_Simulation
             // Генерация случайной координаты X
             // Начинаем от половины ширины текстуры, чтобы текстура не выходила за левую границу
             // и заканчиваем на расстоянии половины ширины текстуры от правой границы
-            int x = random.Next(textureWidth / 2, _graphics.PreferredBackBufferWidth - textureWidth / 2);
+            int x = random.Next(simulationArea.Left + textureWidth, simulationArea.Right - textureWidth / 2);
 
             // Генерация случайной координаты Y
             // Начинаем от половины высоты текстуры, чтобы текстура не выходила за верхнюю границу
             // и заканчиваем на расстоянии половины высоты текстуры от нижней границы
-            int y = random.Next(textureHeight / 2, _graphics.PreferredBackBufferHeight - textureHeight / 2);
+            int y = random.Next(simulationArea.Top + textureHeight, simulationArea.Bottom - textureHeight / 2);
 
             // Возвращаем сгенерированную случайную позицию как вектор
             return new Vector2(x, y);
@@ -151,7 +163,7 @@ namespace Epidemic_Simulation
             {
                 var person = people[i];
                 // Обновление состояния и позиции объекта Person
-                person.Update(gameTime, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight, person.Position, deathChance);
+                person.Update(gameTime, simulationArea, person.Position, deathChance);
 
                 // Проверка столкновений и инфекций с другими объектами Person
                 for (int j = i + 1; j < people.Count; j++)
@@ -181,7 +193,7 @@ namespace Epidemic_Simulation
             CheckAndResolveBoundarySticking();
         }
 
-        // Метод для проверки и устранения застревания объектов Person в границах экрана
+        // Метод для проверки и устранения застревания объектов Person в границах прямоугольника
         private void CheckAndResolveBoundarySticking()
         {
             // Проход по каждому объекту Person в списке people
@@ -193,36 +205,36 @@ namespace Epidemic_Simulation
                 bool stuck = false;     // Флаг, указывающий, застрял ли объект
 
                 // Проверка застревания в левой или правой границе
-                if (person.Position.X - person.Radius <= 0)
+                if (person.Position.X - person.Radius <= simulationArea.Left)
                 {
                     // Если объект застрял в левой границе, переместим его внутрь
-                    person.Position = new Vector2(person.Radius, person.Position.Y);
+                    person.Position = new Vector2(simulationArea.Left + person.Radius, person.Position.Y);
                     // Установим направление движения в сторону от границы
                     person.SetDirection(new Vector2(Math.Abs(person.GetDirection().X), person.GetDirection().Y)); // Направление в сторону от границы
                     stuck = true;
                 }
-                else if (person.Position.X + person.Radius >= _graphics.PreferredBackBufferWidth)
+                else if (person.Position.X + person.Radius >= simulationArea.Right)
                 {
                     // Если объект застрял в правой границе, переместим его внутрь
-                    person.Position = new Vector2(_graphics.PreferredBackBufferWidth - person.Radius, person.Position.Y);
+                    person.Position = new Vector2(simulationArea.Right - person.Radius, person.Position.Y);
                     // Установим направление движения в сторону от границы
                     person.SetDirection(new Vector2(-Math.Abs(person.GetDirection().X), person.GetDirection().Y)); // Направление в сторону от границы
                     stuck = true;
                 }
 
                 // Проверка застревания в верхней или нижней границе
-                if (person.Position.Y - person.Radius <= 0)
+                if (person.Position.Y - person.Radius <= simulationArea.Top)
                 {
                     // Если объект застрял в верхней границе, переместим его внутрь
-                    person.Position = new Vector2(person.Position.X, person.Radius);
+                    person.Position = new Vector2(person.Position.X, simulationArea.Top + person.Radius);
                     // Установим направление движения в сторону от границы
                     person.SetDirection(new Vector2(person.GetDirection().X, Math.Abs(person.GetDirection().Y))); // Направление в сторону от границы
                     stuck = true;
                 }
-                else if (person.Position.Y + person.Radius >= _graphics.PreferredBackBufferHeight)
+                else if (person.Position.Y + person.Radius >= simulationArea.Bottom)
                 {
                     // Если объект застрял в нижней границе, переместим его внутрь
-                    person.Position = new Vector2(person.Position.X, _graphics.PreferredBackBufferHeight - person.Radius);
+                    person.Position = new Vector2(person.Position.X, simulationArea.Bottom - person.Radius);
                     // Установим направление движения в сторону от границы
                     person.SetDirection(new Vector2(person.GetDirection().X, -Math.Abs(person.GetDirection().Y))); // Направление в сторону от границы
                     stuck = true;
@@ -269,6 +281,9 @@ namespace Epidemic_Simulation
         // Метод для рисования симуляции на экране
         private void DrawSimulation()
         {
+            // Рисование прямоугольника для области симуляции
+            _spriteBatch.Draw(rectangleTexture, simulationArea, Color.White);
+
             // Сначала рисуем мертвые объекты Person
             foreach (var person in people)
             {

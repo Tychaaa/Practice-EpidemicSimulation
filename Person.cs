@@ -61,7 +61,7 @@ namespace Epidemic_Simulation
         }
 
         // Метод для обновления состояния объекта
-        public void Update(GameTime gameTime, int screenWidth, int screenHeight, Vector2 position, float deathChance)
+        public void Update(GameTime gameTime, Rectangle simulationArea, Vector2 position, float deathChance)
         {
             // Если объект мертв, он не двигается
             if (IsDead) { return; }
@@ -116,25 +116,25 @@ namespace Epidemic_Simulation
             // Добавляем вектор смещения к текущей позиции (Position).
             Position += direction * speed * (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-            // Проверка выхода за границы экрана
-            CheckBoundsCollision(screenWidth, screenHeight, position);
+            // Проверка выхода за границы прямоугольника
+            CheckBoundsCollision(simulationArea, position);
         }
 
-        // Метод для проверки и обработки столкновений с границами экрана
-        private void CheckBoundsCollision(int screenWidth, int screenHeight, Vector2 position)
+        // Метод для проверки и обработки столкновений с границами прямоугольника
+        private void CheckBoundsCollision(Rectangle simulationArea, Vector2 position)
         {
-            // Проверка выхода за границы экрана и изменение направления при столкновении с границей по оси X
-            if (Position.X - Radius <= 0 || Position.X + Radius >= screenWidth)
+            // Проверка выхода за границы прямоугольника и изменение направления при столкновении с границей по оси X
+            if (Position.X - Radius <= simulationArea.Left || Position.X + Radius >= simulationArea.Right)
             {
                 direction.X = -direction.X; // Инвертируем направление по оси X
-                position.X = Math.Clamp(Position.X, Radius, screenWidth - Radius); // Ограничиваем позицию в пределах экрана
+                position.X = Math.Clamp(Position.X, simulationArea.Left + Radius, simulationArea.Right - Radius); // Ограничиваем позицию в пределах прямоугольника
             }
 
-            // Проверка выхода за границы экрана и изменение направления при столкновении с границей по оси Y
-            if (Position.Y - Radius <= 0 || Position.Y + Radius >= screenHeight)
+            // Проверка выхода за границы прямоугольника и изменение направления при столкновении с границей по оси Y
+            if (Position.Y - Radius <= simulationArea.Top || Position.Y + Radius >= simulationArea.Bottom)
             {
                 direction.Y = -direction.Y; // Инвертируем направление по оси Y
-                position.Y = Math.Clamp(Position.Y, Radius, screenHeight - Radius); // Ограничиваем позицию в пределах экрана
+                position.Y = Math.Clamp(Position.Y, simulationArea.Top + Radius, simulationArea.Bottom - Radius); // Ограничиваем позицию в пределах прямоугольника
             }
         }
 
