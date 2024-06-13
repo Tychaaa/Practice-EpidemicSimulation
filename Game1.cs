@@ -13,9 +13,13 @@ namespace Epidemic_Simulation
 
         Texture2D personTexture;                    // Текстура для отображения объекта Person
         private Texture2D backgroundTexture;        // Текстура для фона главного меню
+        private Texture2D backgroundSimulationTexture; // Текстура для фона симуляции
         private Texture2D startButtonTexture;       // Текстура кнопки "Start"
         private Texture2D exitButtonTexture;        // Текстура кнопки "Exit"
         private Texture2D rectangleTexture;         // Текстура для прямоугольника
+        private Texture2D trackTexture;             // Текстура для дорожки ползунка
+        private Texture2D thumbTexture;             // Текстура для ползунка
+        private SpriteFont font;                    // Шрифт для отображения текста
 
         private Rectangle simulationArea;           // Прямоугольник для области симуляции
 
@@ -28,6 +32,13 @@ namespace Epidemic_Simulation
         float deathChance = 0.05f;                  // Шанс смерти от инфекции
 
         private MainMenu mainMenu;                  // Экземпляр класса MainMenu
+
+        private Slider infectionChanceSlider;       // Ползунок для шанса заражения
+        private Slider deathChanceSlider;           // Ползунок для шанса смерти
+        private Slider infectionRadiusSlider;       // Ползунок для радиуса заражения
+        private Slider speedSlider;                 // Ползунок для скорости объектов
+        private Slider incubationPeriodSlider;      // Ползунок для инкубационного периода
+        private Slider infectionPeriodSlider;       // Ползунок для периода инфекции
 
         // Перечисление состояний игры
         private enum GameState
@@ -77,14 +88,29 @@ namespace Epidemic_Simulation
             exitButtonTexture = Content.Load<Texture2D>("exitButton");
             // Загрузка текстуры фона из каталога контента
             backgroundTexture = Content.Load<Texture2D>("background");
+            // Загрузка текстуры фона симуляции из каталога контента
+            backgroundSimulationTexture = Content.Load<Texture2D>("backgroundSimulation");
             // Загрузка текстуры прямоугольника
             rectangleTexture = Content.Load<Texture2D>("simulationRectangle");
+            // Загрузка текстур ползунка
+            trackTexture = Content.Load<Texture2D>("track");
+            thumbTexture = Content.Load<Texture2D>("thumb");
+            // Загрузка шрифта
+            font = Content.Load<SpriteFont>("font");
 
-            // Инициализация прямоугольника области симуляции с учётом толщины границ 4 пикселя
-            simulationArea = new Rectangle(5, 5, rectangleTexture.Width - 5, rectangleTexture.Height - 5);
+            // Инициализация прямоугольника области симуляции
+            simulationArea = new Rectangle(10, 12, rectangleTexture.Width - 10, rectangleTexture.Height - 10);
 
             // Создание экземпляра главного меню
             mainMenu = new MainMenu(backgroundTexture, startButtonTexture, exitButtonTexture, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight);
+
+            // Создание ползунков
+            infectionChanceSlider = new Slider(trackTexture, thumbTexture, font, "Infection Chance", 1040, 50, 200, 0, 100, (int)(infectionChance * 100));
+            deathChanceSlider = new Slider(trackTexture, thumbTexture, font, "Death Chance", 1040, 150, 200, 0, 100, (int)(deathChance * 100));
+            infectionRadiusSlider = new Slider(trackTexture, thumbTexture, font, "Infection Radius", 1040, 250, 200, 30, 100, (int)(infectionRadius));
+            speedSlider = new Slider(trackTexture, thumbTexture, font, "Speed", 1040, 350, 200, 10, 200, (int)(Person.defaultSpeed));
+            incubationPeriodSlider = new Slider(trackTexture, thumbTexture, font, "Incubation Period", 1040, 450, 200, 0, 10, Person.defaultIncubationPeriod);
+            infectionPeriodSlider = new Slider(trackTexture, thumbTexture, font, "Infection Period", 1040, 550, 200, 1, 15, Person.defaultInfectionPeriod);
 
             // Создание объектов Person и добавление их в список
             for (int i = 0; i < numberOfPeople; i++)
@@ -100,7 +126,7 @@ namespace Epidemic_Simulation
             // Заражение объектов в списке
             for (int num = 0; num < 3; num++)
             {
-                people[num].Infect(); 
+                people[num].Infect();
             }
         }
 
@@ -148,6 +174,27 @@ namespace Epidemic_Simulation
                 // Обновление состояния симуляции
                 case GameState.Simulation:
                     UpdateSimulation(gameTime);
+                    infectionChanceSlider.Update();
+                    infectionChance = infectionChanceSlider.GetValue() / 100f;
+
+                    deathChanceSlider.Update();
+                    deathChance = deathChanceSlider.GetValue() / 100f;
+
+                    infectionRadiusSlider.Update();
+                    infectionRadius = infectionRadiusSlider.GetValue();
+
+                    speedSlider.Update();
+                    float newSpeed = speedSlider.GetValue();
+                    foreach (var person in people)
+                    {
+                        person.SetSpeed(newSpeed);
+                    }
+
+                    incubationPeriodSlider.Update();
+                    Person.defaultIncubationPeriod = incubationPeriodSlider.GetValue();
+
+                    infectionPeriodSlider.Update();
+                    Person.defaultInfectionPeriod = infectionPeriodSlider.GetValue();
                     break;
             }
 
@@ -253,7 +300,7 @@ namespace Epidemic_Simulation
         protected override void Draw(GameTime gameTime)
         {
             // Очистка экрана заданным цветом (CornflowerBlue)
-            GraphicsDevice.Clear(Color.LightGray);
+            GraphicsDevice.Clear(Color.DarkSeaGreen);
 
             // Начало рисования спрайтов
             _spriteBatch.Begin();
@@ -268,6 +315,12 @@ namespace Epidemic_Simulation
                 // Рисование симуляции
                 case GameState.Simulation:
                     DrawSimulation();
+                    infectionChanceSlider.Draw(_spriteBatch);
+                    deathChanceSlider.Draw(_spriteBatch);
+                    infectionRadiusSlider.Draw(_spriteBatch);
+                    speedSlider.Draw(_spriteBatch);
+                    incubationPeriodSlider.Draw(_spriteBatch);
+                    infectionPeriodSlider.Draw(_spriteBatch);
                     break;
             }
 
@@ -281,6 +334,9 @@ namespace Epidemic_Simulation
         // Метод для рисования симуляции на экране
         private void DrawSimulation()
         {
+            // Рисование фона симуляции
+            _spriteBatch.Draw(backgroundSimulationTexture, new Rectangle(0, 0, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight), Color.White);
+
             // Рисование прямоугольника для области симуляции
             _spriteBatch.Draw(rectangleTexture, simulationArea, Color.White);
 

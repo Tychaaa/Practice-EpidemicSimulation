@@ -21,6 +21,9 @@ namespace Epidemic_Simulation
         private TimeSpan timeSinceLastDeathCheck = TimeSpan.Zero;      // Время с последней проверки на смерть
 
         private static Random random = new Random();    // Генератор случайных чисел
+        public static float defaultSpeed = 70f;
+        public static int defaultIncubationPeriod = 5;
+        public static int defaultInfectionPeriod = 10;
 
         // Конструктор, инициализирующий объект в заданной позиции
         public Person(Vector2 position, float textureWidth)
@@ -31,7 +34,7 @@ namespace Epidemic_Simulation
             direction = new Vector2((float)random.NextDouble() * 2 - 1, (float)random.NextDouble() * 2 - 1);
             direction.Normalize();  // Нормализация вектора направления для единичной длины
 
-            speed = 70f;                // Установка скорости движения
+            speed = defaultSpeed;       // Установка скорости движения
             Radius = textureWidth / 2;  // Расчет радиуса на основе ширины текстуры
             IsInfected = false;         // Инициализация состояния как незараженного
             IsRecovered = false;        // Инициализация состояния как не выздоровевшего
@@ -48,15 +51,11 @@ namespace Epidemic_Simulation
                 // Устанавливаем состояние объекта как носитель инфекции
                 IsCarrier = true;
 
-                // Генерация случайной продолжительности инкубационного периода от 5 до 10 секунд
-                double incubationSeconds = 5 + random.NextDouble() * 5;
-                // Преобразование сгенерированного времени в объект TimeSpan
-                incubationTimeRemaining = TimeSpan.FromSeconds(incubationSeconds);
+                // Устанавливаем инкубационный период
+                incubationTimeRemaining = TimeSpan.FromSeconds(defaultIncubationPeriod);
 
-                // Генерация случайной продолжительности инфекции от 10 до 15 секунд
-                double infectionSeconds = 10 + random.NextDouble() * 5;
-                // Преобразование сгенерированного времени в объект TimeSpan
-                infectionTimeRemaining = TimeSpan.FromSeconds(infectionSeconds);
+                // Устанавливаем период инфекции
+                infectionTimeRemaining = TimeSpan.FromSeconds(defaultInfectionPeriod);
             }
         }
 
