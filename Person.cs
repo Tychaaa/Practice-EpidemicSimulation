@@ -5,11 +5,18 @@ namespace Epidemic_Simulation
 {
     public class Person
     {
+        // Перечисление, описывающее состояние здоровья объекта
+        public enum HealthState
+        {
+            Healthy,    // Здоровый объект
+            Carrier,    // Объект носитель инфекции
+            Infected,   // Зараженный объект
+            Recovered,  // Выздоровевший объект
+            Dead        // Умерший объект
+        }
+
         public Vector2 Position { get; set; }           // Позиция объекта
-        public bool IsInfected { get; private set; }    // Флаг, указывающий, заражен ли объект
-        public bool IsRecovered { get; private set; }   // Флаг, указывающий, выздоровел ли объект
-        public bool IsCarrier { get; private set; }     // Флаг, указывающий, является ли объект носителем инфекции
-        public bool IsDead { get; private set; }        // Флаг, указывающий, мертв ли объект
+        public HealthState State { get; private set; }  // Состояние здоровья объекта
         public float Radius { get; private set; }       // Радиус объекта
 
         private TimeSpan infectionTimeRemaining;        // Оставшееся время до конца инфекции
@@ -32,24 +39,21 @@ namespace Epidemic_Simulation
 
             // Генерация случайного направления движения с координатами от -1 до 1
             direction = new Vector2((float)random.NextDouble() * 2 - 1, (float)random.NextDouble() * 2 - 1);
-            direction.Normalize();  // Нормализация вектора направления для единичной длины
+            direction.Normalize();          // Нормализация вектора направления для единичной длины
 
-            speed = defaultSpeed;       // Установка скорости движения
-            Radius = textureWidth / 2;  // Расчет радиуса на основе ширины текстуры
-            IsInfected = false;         // Инициализация состояния как незараженного
-            IsRecovered = false;        // Инициализация состояния как не выздоровевшего
-            IsCarrier = false;          // Инициализация состояния как неносителя
-            IsDead = false;             // Инициализация состояния как живого
+            speed = defaultSpeed;           // Установка скорости движения
+            Radius = textureWidth / 2;      // Расчет радиуса на основе ширины текстуры
+            State = HealthState.Healthy;    // Инициализация состояния как здоровый
         }
 
         // Метод для заражения объекта
         public void Infect()
         {
             // Проверяем, что объект не заражен, не выздоровел и не является носителем или мертвым
-            if (!IsInfected && !IsRecovered && !IsCarrier && !IsDead)
+            if (State == HealthState.Healthy)
             {
                 // Устанавливаем состояние объекта как носитель инфекции
-                IsCarrier = true;
+                State = HealthState.Carrier;
 
                 // Устанавливаем инкубационный период
                 incubationTimeRemaining = TimeSpan.FromSeconds(defaultIncubationPeriod);
@@ -63,10 +67,10 @@ namespace Epidemic_Simulation
         public void Update(GameTime gameTime, Rectangle simulationArea, Vector2 position, float deathChance)
         {
             // Если объект мертв, он не двигается
-            if (IsDead) { return; }
+            if (State == HealthState.Dead) { return; }
 
             // Если объект является носителем инфекции
-            if (IsCarrier)
+            if (State == HealthState.Carrier)
             {
                 // Уменьшаем оставшееся время инкубационного периода
                 incubationTimeRemaining -= gameTime.ElapsedGameTime;
@@ -75,12 +79,11 @@ namespace Epidemic_Simulation
                 if (incubationTimeRemaining <= TimeSpan.Zero)
                 {
                     // Переводим состояние из носителя в зараженный
-                    IsCarrier = false;
-                    IsInfected = true;
+                    State = HealthState.Infected;
                 }
             }
             // Если объект заражен
-            else if (IsInfected)
+            else if (State == HealthState.Infected)
             {
                 // Уменьшаем оставшееся время инфекции
                 infectionTimeRemaining -= gameTime.ElapsedGameTime;
@@ -93,8 +96,7 @@ namespace Epidemic_Simulation
                     if (random.NextDouble() < deathChance)
                     {
                         // Объект умирает
-                        IsInfected = false;
-                        IsDead = true;
+                        State = HealthState.Dead;
                         return;
                     }
                 }
@@ -103,8 +105,7 @@ namespace Epidemic_Simulation
                 if (infectionTimeRemaining <= TimeSpan.Zero)
                 {
                     // Переводим состояние из зараженного в выздоровевший
-                    IsInfected = false;
-                    IsRecovered = true;
+                    State = HealthState.Recovered;
                 }
             }
 
@@ -140,7 +141,7 @@ namespace Epidemic_Simulation
         // Метод для проверки и обработки столкновений с другим объектом Person
         public void CheckCollision(Person otherPerson)
         {
-            if (IsDead || otherPerson.IsDead)
+            if (State == HealthState.Dead || otherPerson.State == HealthState.Dead)
                 return; // Не проверяем коллизии с мертвыми объектами
 
             // Вычисляем расстояние между центрами двух объектов

@@ -16,9 +16,10 @@ namespace Epidemic_Simulation
         private bool isDragging;            // Флаг для отслеживания состояния перетаскивания
         private string label;               // Название ползунка
         private SpriteFont font;            // Шрифт для отображения текста
+        private string unit;                // Единица измерения ползунка
 
         // Конструктор класса Slider
-        public Slider(Texture2D trackTexture, Texture2D thumbTexture, SpriteFont font, string label, int x, int y, int width, int minValue, int maxValue, int initialValue)
+        public Slider(Texture2D trackTexture, Texture2D thumbTexture, SpriteFont font, string label, int x, int y, int width, int minValue, int maxValue, int initialValue, string unit)
         {
             this.trackTexture = trackTexture;  // Инициализация текстуры дорожки ползунка
             this.thumbTexture = thumbTexture;  // Инициализация текстуры ползунка
@@ -27,6 +28,7 @@ namespace Epidemic_Simulation
             this.currentValue = initialValue;  // Установка начального значения ползунка
             this.label = label;                // Инициализация названия ползунка
             this.font = font;                  // Инициализация шрифта
+            this.unit = unit;                  // Инициализация единицы измерения
 
             // Создание прямоугольника для дорожки ползунка
             trackRectangle = new Rectangle(x, y, width, trackTexture.Height);
@@ -50,16 +52,16 @@ namespace Epidemic_Simulation
                 if (thumbRectangle.Contains(mouseState.Position) || isDragging)
                 {
                     isDragging = true;  // Устанавливаем флаг перетаскивания
-                    // Обновляем положение ползунка, ограничивая его движение рамками дорожки
+                                        // Обновляем положение ползунка, ограничивая его движение рамками дорожки
                     thumbRectangle.X = MathHelper.Clamp(
                         mouseState.X - thumbRectangle.Width / 2, // Центрируем ползунок под курсором мыши, смещая позицию на половину ширины ползунка
-                        trackRectangle.X, // Левая граница дорожки, ограничивающая минимальное значение позиции ползунка
-                        trackRectangle.X + trackRectangle.Width - thumbRectangle.Width // Правая граница дорожки, ограничивающая максимальное значение позиции ползунка
+                        trackRectangle.X - thumbRectangle.Width / 2, // Левая граница дорожки, ограничивающая минимальное значение позиции ползунка
+                        trackRectangle.X + trackRectangle.Width - thumbRectangle.Width / 2 // Правая граница дорожки, ограничивающая максимальное значение позиции ползунка
                     );
 
-                    // Обновляем текущее значение ползунка на основе его положения
+                    // Обновляем текущее значение ползунка на основе его положения (по центру)
                     currentValue = minValue + (int)(
-                        ((thumbRectangle.X - trackRectangle.X) / (float)(trackRectangle.Width - thumbRectangle.Width)) // Относительная позиция ползунка на дорожке (от 0 до 1)
+                        ((thumbRectangle.Center.X - trackRectangle.X) / (float)trackRectangle.Width) // Относительная позиция ползунка на дорожке (от 0 до 1)
                         * (maxValue - minValue) // Умножаем относительную позицию на диапазон значений ползунка
                     );
                 }
@@ -73,20 +75,52 @@ namespace Epidemic_Simulation
         // Метод для рисования ползунка
         public void Draw(SpriteBatch spriteBatch)
         {
-            // Рисование дорожки ползунка
-            spriteBatch.Draw(trackTexture, trackRectangle, Color.White);
-            // Рисование ползунка
+            // Определяем ширину закрашенной части
+            int filledWidth = thumbRectangle.Center.X - trackRectangle.X;
+
+            // Рисуем закрашенную часть дорожки
+            spriteBatch.Draw(trackTexture, new Rectangle(trackRectangle.X, trackRectangle.Y, filledWidth, trackRectangle.Height), Color.White);
+
+            // Рисуем незакрашенную часть дорожки
+            spriteBatch.Draw(trackTexture, new Rectangle(trackRectangle.X + filledWidth, trackRectangle.Y, trackRectangle.Width - filledWidth, trackRectangle.Height), Color.Gray);
+
+            // Рисуем ползунок
             spriteBatch.Draw(thumbTexture, thumbRectangle, Color.White);
-            // Рисование названия ползунка
+
+            // Рисуем название ползунка
             spriteBatch.DrawString(font, label, new Vector2(trackRectangle.X, trackRectangle.Y - 30), Color.Black);
-            // Рисование текущего значения ползунка
-            spriteBatch.DrawString(font, $"{currentValue}%", new Vector2(trackRectangle.X + trackRectangle.Width - 30, trackRectangle.Y - 30), Color.Black);
+
+            // Рисуем текущее значение ползунка с единицей измерения под ползунком
+            spriteBatch.DrawString(font, $"{currentValue} {unit}", new Vector2(trackRectangle.X + trackRectangle.Width / 2 - font.MeasureString($"{currentValue} {unit}").X / 2, trackRectangle.Y + 20), Color.Black);
         }
 
         // Метод для получения текущего значения ползунка
         public int GetValue()
         {
             return currentValue;
+        }
+
+        // Метод для установки текущего значения ползунка
+        public void SetValue(int value)
+        {
+            currentValue = MathHelper.Clamp(value, minValue, maxValue);
+
+            // Обновляем положение ползунка на основе его значения
+            thumbRectangle.X = trackRectangle.X + (int)(((currentValue - minValue) / (float)(maxValue - minValue)) * trackRectangle.Width) - (thumbTexture.Width / 2);
+        }
+
+        // Метод для проверки, находится ли курсор мыши на ползунке
+        public bool IsHovered()
+        {
+            // Возвращает true, если курсор находится в пределах прямоугольника ползунка
+            return thumbRectangle.Contains(Mouse.GetState().Position);
+        }
+
+        // Метод для проверки, выполняется ли перетаскивание ползунка
+        public bool IsDragging()
+        {
+            // Возвращает значение флага перетаскивания
+            return isDragging;
         }
     }
 }
