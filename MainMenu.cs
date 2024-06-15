@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Content;
 
 namespace Epidemic_Simulation
 {
@@ -13,31 +14,34 @@ namespace Epidemic_Simulation
         private Rectangle exitButtonRectangle;      // Область на экране для кнопки "Exit"
 
         // Конструктор класса MainMenu
-        public MainMenu(Texture2D backgroundTexture, Texture2D startButtonTexture, Texture2D exitButtonTexture, int screenWidth, int screenHeight)
+        public MainMenu(ContentManager content)
         {
-            // Инициализация текстуры фона
-            this.backgroundTexture = backgroundTexture;
-            // Инициализация текстуры кнопки "Start"
-            this.startButtonTexture = startButtonTexture;
-            // Инициализация текстуры кнопки "Exit"
-            this.exitButtonTexture = exitButtonTexture;
+            LoadContent(content);
+            Initialize();
+        }
 
+        // Метод для инициализации окна главного меню
+        private void Initialize()
+        {
             // Задание ширины и высоты кнопок
             int buttonWidth = 293;
             int buttonHeight = 77;
 
-            // Задание координат X и Y для кнопки "Start"
-            int startButtonX = 778;
-            int startButtonY = 312;
-
-            // Задание координат X и Y для кнопки "Exit"
-            int exitButtonX = startButtonX;
-            int exitButtonY = 396;
-
             // Устанавливаем область кнопки "Start" на экране
-            startButtonRectangle = new Rectangle(startButtonX, startButtonY, buttonWidth, buttonHeight);
+            startButtonRectangle = new Rectangle(778, 312, buttonWidth, buttonHeight);
             // Устанавливаем область кнопки "Exit" на экране
-            exitButtonRectangle = new Rectangle(exitButtonX, exitButtonY, buttonWidth, buttonHeight);
+            exitButtonRectangle = new Rectangle(778, 396, buttonWidth, buttonHeight);
+        }
+
+        // Метод для загрузки контента главного меню
+        public void LoadContent(ContentManager content)
+        {
+            // Загрузка текстуры кнопки "Start" из каталога контента
+            startButtonTexture = content.Load<Texture2D>("startButton");
+            // Загрузка текстуры кнопки "Exit" из каталога контента
+            exitButtonTexture = content.Load<Texture2D>("exitButton");
+            // Загрузка текстуры фона из каталога контента
+            backgroundTexture = content.Load<Texture2D>("background");
         }
 
         // Метод для обновления состояния главного меню
@@ -64,14 +68,14 @@ namespace Epidemic_Simulation
         }
 
         // Метод для рисования главного меню
-        public void Draw(SpriteBatch spriteBatch, int screenWidth, int screenHeight)
+        public void Draw(SpriteBatch _spriteBatch, GraphicsDeviceManager _graphics)
         {
             // Рисование фона
-            spriteBatch.Draw(backgroundTexture, new Rectangle(0, 0, screenWidth, screenHeight), Color.White);
+            _spriteBatch.Draw(backgroundTexture, new Rectangle(0, 0, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight), Color.White);
 
             // Рисование кнопок
-            spriteBatch.Draw(startButtonTexture, startButtonRectangle, Color.White);
-            spriteBatch.Draw(exitButtonTexture, exitButtonRectangle, Color.White);
+            _spriteBatch.Draw(startButtonTexture, startButtonRectangle, Color.White);
+            _spriteBatch.Draw(exitButtonTexture, exitButtonRectangle, Color.White);
         }
     }
 }
