@@ -54,7 +54,7 @@ namespace Epidemic_Simulation
             mainMenu = new MainMenu(Content);
 
             // Создание и загрузка контента для симуляции
-            simulation = new Simulation(Content);
+            simulation = new Simulation(GraphicsDevice, Content);
         }
 
         // Метод для обновления состояния игры

@@ -20,6 +20,7 @@ namespace Epidemic_Simulation
         private Texture2D thumbTexture;                     // Текстура для ползунка
         private Texture2D circleTexture;                    // Текстура для отображения радиуса заражения
         private Texture2D countPeopleRectangleTexture;      // Текстура для прямоугольника для отображения количества пациентов
+        private Texture2D graphBackgroundTexture;           // Текстура для фона графика
 
         private SpriteFont font;                            // Шрифт для отображения текста
 
@@ -47,22 +48,25 @@ namespace Epidemic_Simulation
         private Slider infectionPeriodSlider;       // Ползунок для периода инфекции
         private Slider numberOfPeopleSlider;        // Ползунок для количества людей
 
-        private Rectangle countPeopleRectangle;             // Прямоугольник для отображения текущего количества пациентов
+        private Rectangle countPeopleRectangle;             // Прямоугольник для отображения текущего количества зараженных
+        private Rectangle graphRectangle;                   // Прямоугольник для отображения графика
         private Rectangle simulationArea;                   // Прямоугольник для области симуляции
         private Rectangle simulationStartButtonRectangle;   // Прямоугольник для кнопки "Start" в окне симуляции
         private Rectangle simulationResetButtonRectangle;   // Прямоугольник для кнопки "Reset" в окне симуляции
 
         private bool simulationStarted = false;             // Флаг для отслеживания начала симуляции
 
+        private InfectionGraph graph;                       // График состояния здоровья людей                  
+
         // Конструктор класса окна симуляции
-        public Simulation(ContentManager content)
+        public Simulation(GraphicsDevice graphicsDevice, ContentManager content)
         {
             LoadContent(content);
-            Initialize();
+            Initialize(graphicsDevice);
         }
 
         // Метод для инициализации окна симуляции
-        private void Initialize()
+        private void Initialize(GraphicsDevice graphicsDevice)
         {
             people = new List<Person>();    // Инициализация списка объектов Person
             random = new Random();          // Инициализация генератора случайных чисел
@@ -73,7 +77,16 @@ namespace Epidemic_Simulation
             // Инициализация прямоугольника для отображения количества пациентов
             countPeopleRectangle = new Rectangle(10, 600, countPeopleRectangleTexture.Width, countPeopleRectangleTexture.Height);
 
+            // Инициализация графика состояния здоровья
+            graph = new InfectionGraph(graphicsDevice, 100, 718, 90, new Vector2(289, 610));
+
+            // Инициализация прямоугольника для отображения фона графика
+            graphRectangle = new Rectangle(285, 600, graphBackgroundTexture.Width, graphBackgroundTexture.Height);
+
+            // Инициализация ползунков для настройки параметров симуляции
             InitializeSliders();
+
+            // Инициализация прямоугольников для кнопок "Start" и "Reset" в окне симуляции
             InitializeButtonRectangles();
         }
 
@@ -130,6 +143,8 @@ namespace Epidemic_Simulation
             countPeopleRectangleTexture = content.Load<Texture2D>("countPeople_rectangle");
             // Загрузка шрифта
             font = content.Load<SpriteFont>("font");
+            // Загрузка текстуры для фона графика
+            graphBackgroundTexture = content.Load<Texture2D>("graphBackgroundTexture");
         }
 
         // Метод для обновления состояния симуляции
@@ -159,6 +174,18 @@ namespace Epidemic_Simulation
                 simulationStarted = false;
                 ResetSimulation();              // Сброс симуляции
             }
+
+            // Подсчет количества здоровых людей
+            int healthyCount = people.Count(p => p.State == HealthState.Healthy);
+            // Подсчет количества инфицированных и носителей
+            int infectedCount = people.Count(p => p.State == HealthState.Infected || p.State == HealthState.Carrier);
+            // Подсчет количества выздоровевших
+            int recoveredCount = people.Count(p => p.State == HealthState.Recovered);
+            // Подсчет количества умерших
+            int deadCount = people.Count(p => p.State == HealthState.Dead);
+
+            // Добавление текущих данных в график
+            graph.AddDataPoint(healthyCount, infectedCount, recoveredCount, deadCount);
         }
 
         // Метод для обновления состояния симуляции
@@ -362,6 +389,9 @@ namespace Epidemic_Simulation
             // Рисование прямоугольника
             _spriteBatch.Draw(countPeopleRectangleTexture, countPeopleRectangle, Color.White);
 
+            // Рисование прямоугольника позади графика
+            _spriteBatch.Draw(graphBackgroundTexture, graphRectangle, Color.White);
+
             // Определение нужно ли рисовать радиус
             bool drawRadius = infectionRadiusSlider.IsHovered() || infectionRadiusSlider.IsDragging();
 
@@ -435,10 +465,10 @@ namespace Epidemic_Simulation
             }
 
             // Рисование количества пациентов
-            _spriteBatch.DrawString(font, "Recovered: " + people.Count(p => p.State == HealthState.Recovered), new Vector2(30, 615), Color.Black);
-            _spriteBatch.DrawString(font, "Healthy: " + people.Count(p => p.State == HealthState.Healthy), new Vector2(30, 635), Color.Black);
-            _spriteBatch.DrawString(font, "Infected: " + people.Count(p => p.State == HealthState.Infected || p.State == HealthState.Carrier), new Vector2(30, 655), Color.Black);
-            _spriteBatch.DrawString(font, "Died: " + people.Count(p => p.State == HealthState.Dead), new Vector2(30, 675), Color.Black);
+            DrawPatientCount(_spriteBatch, "Recovered: ", people.Count(p => p.State == HealthState.Recovered), new Vector2(30, 615), Color.Purple);
+            DrawPatientCount(_spriteBatch, "Healthy: ", people.Count(p => p.State == HealthState.Healthy), new Vector2(30, 635), Color.Blue);
+            DrawPatientCount(_spriteBatch, "Infected: ", people.Count(p => p.State == HealthState.Infected || p.State == HealthState.Carrier), new Vector2(30, 655), Color.Orange);
+            DrawPatientCount(_spriteBatch, "Died: ", people.Count(p => p.State == HealthState.Dead), new Vector2(30, 675), Color.Black);
 
             // Рисование ползунков для настройки параметров симуляции
             infectionChanceSlider.Draw(_spriteBatch);
@@ -452,6 +482,21 @@ namespace Epidemic_Simulation
             // Рисование кнопок "Start" и "Reset" в окне симуляции
             _spriteBatch.Draw(simulationStartButtonTexture, simulationStartButtonRectangle, Color.White);
             _spriteBatch.Draw(simulationResetButtonTexture, simulationResetButtonRectangle, Color.White);
+
+            // Отрисовка графика
+            graph.Draw(_spriteBatch);
+        }
+
+        // Метод для рисования количества пациентов
+        private void DrawPatientCount(SpriteBatch _spriteBatch, string label, int count, Vector2 position, Color color)
+        {
+            // Рисуем метку (label) черным цветом
+            _spriteBatch.DrawString(font, label, position, Color.Black);
+
+            // Рисуем количество пациентов рядом с меткой
+            _spriteBatch.DrawString(font, count.ToString(),
+                new Vector2(position.X + font.MeasureString(label).X, position.Y), // Позиция для числа пациентов рядом с меткой
+                color); // Цвет числа пациентов
         }
     }
 }
