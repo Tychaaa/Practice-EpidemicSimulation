@@ -15,6 +15,7 @@ namespace Epidemic_Simulation
         private Texture2D backgroundSimulationTexture;      // Текстура для фона симуляции
         private Texture2D simulationStartButtonTexture;     // Текстура для кнопки "Start" в окне симуляции
         private Texture2D simulationResetButtonTexture;     // Текстура для кнопки "Reset" в окне симуляции
+        private Texture2D simulationBackButtonTexture;     // Текстура для кнопки "Reset" в окне симуляции
         private Texture2D rectangleTexture;                 // Текстура для прямоугольника
         private Texture2D trackTexture;                     // Текстура для дорожки ползунка
         private Texture2D thumbTexture;                     // Текстура для ползунка
@@ -53,6 +54,7 @@ namespace Epidemic_Simulation
         private Rectangle simulationArea;                   // Прямоугольник для области симуляции
         private Rectangle simulationStartButtonRectangle;   // Прямоугольник для кнопки "Start" в окне симуляции
         private Rectangle simulationResetButtonRectangle;   // Прямоугольник для кнопки "Reset" в окне симуляции
+        private Rectangle simulationBackButtonRectangle;    // Прямоугольник для кнопки "Back" в окне симуляции
 
         private bool simulationStarted = false;             // Флаг для отслеживания начала симуляции
 
@@ -118,7 +120,9 @@ namespace Epidemic_Simulation
             // Прямоугольник для кнопки "Start" в окне симуляции
             simulationStartButtonRectangle = new Rectangle(1025, 593, simulationStartButtonTexture.Width, simulationStartButtonTexture.Height);
             // Прямоугольник для кнопки "Reset" в окне симуляции
-            simulationResetButtonRectangle = new Rectangle(1025, 653, simulationResetButtonTexture.Width, simulationResetButtonTexture.Height);
+            simulationResetButtonRectangle = new Rectangle(1139, 653, simulationResetButtonTexture.Width, simulationResetButtonTexture.Height);
+            // Прямоугольник для кнопки "Back" в окне симуляции
+            simulationBackButtonRectangle = new Rectangle(1025, 653, simulationBackButtonTexture.Width, simulationBackButtonTexture.Height);
         }
 
         // Метод для загрузки контента симуляции
@@ -130,6 +134,8 @@ namespace Epidemic_Simulation
             simulationStartButtonTexture = content.Load<Texture2D>("sim_startButton");
             // Загрузка текстуры для кнопки "Reset" в окне симуляции
             simulationResetButtonTexture = content.Load<Texture2D>("sim_resetButton");
+            // Загрузка текстуры для кнопки "Back" в окне симуляции
+            simulationBackButtonTexture = content.Load<Texture2D>("sim_backButton");
             // Загрузка текстуры фона симуляции из каталога контента
             backgroundSimulationTexture = content.Load<Texture2D>("backgroundSimulation");
             // Загрузка текстур ползунка
@@ -148,8 +154,9 @@ namespace Epidemic_Simulation
         }
 
         // Метод для обновления состояния симуляции
-        public void Update(GameTime gameTime)
+        public void Update(GameTime gameTime, out bool backRequested)
         {
+            backRequested = false;  // Флаг для запроса выхода в главное меню
             // Обновление настроек симуляции с использованием ползунков
             UpdateSimulationSettings();
             // Если симуляция не запущена
@@ -171,6 +178,14 @@ namespace Epidemic_Simulation
             // Проверка, нажата ли кнопка "Reset" для сброса симуляции
             if (Mouse.GetState().LeftButton == ButtonState.Pressed && simulationResetButtonRectangle.Contains(Mouse.GetState().Position))
             {
+                simulationStarted = false;
+                ResetSimulation();              // Сброс симуляции
+            }
+
+            // Проверка, нажата ли кнопка "Back" для выхода в главное меню
+            if (Mouse.GetState().LeftButton == ButtonState.Pressed && simulationBackButtonRectangle.Contains(Mouse.GetState().Position))
+            {
+                backRequested = true;           // Запрашиваем выход в главное меню
                 simulationStarted = false;
                 ResetSimulation();              // Сброс симуляции
             }
@@ -482,6 +497,7 @@ namespace Epidemic_Simulation
             // Рисование кнопок "Start" и "Reset" в окне симуляции
             _spriteBatch.Draw(simulationStartButtonTexture, simulationStartButtonRectangle, Color.White);
             _spriteBatch.Draw(simulationResetButtonTexture, simulationResetButtonRectangle, Color.White);
+            _spriteBatch.Draw(simulationBackButtonTexture, simulationBackButtonRectangle, Color.White);
 
             // Отрисовка графика
             graph.Draw(_spriteBatch);

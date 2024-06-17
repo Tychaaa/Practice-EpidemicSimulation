@@ -31,6 +31,8 @@ namespace Epidemic_Simulation
                 PreferredBackBufferWidth = 1280,    // Установка ширины окна
                 PreferredBackBufferHeight = 720     // Установка высоты окна
             };
+
+            //_graphics.IsFullScreen = true;
             // Установка корневого каталога для контента
             Content.RootDirectory = "Content";
             // Включение видимости курсора мыши
@@ -83,7 +85,12 @@ namespace Epidemic_Simulation
                     break;
                 // Обновление состояния симуляции
                 case GameState.Simulation:
-                    simulation.Update(gameTime);
+                    bool backRequested;
+                    simulation.Update(gameTime, out backRequested);
+                    if(backRequested)
+                    {  
+                        currentState = GameState.MainMenu; 
+                    }
                     break;
             }
 
