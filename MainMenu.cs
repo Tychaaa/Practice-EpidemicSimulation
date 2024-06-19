@@ -5,7 +5,7 @@ using Microsoft.Xna.Framework.Content;
 
 namespace Epidemic_Simulation
 {
-    public class MainMenu
+    public class MainMenu : IScreen
     {
         private Texture2D backgroundTexture;        // Текстура для фона главного меню
         private Texture2D startButtonTexture;       // Текстура для кнопки "Start"
@@ -45,9 +45,10 @@ namespace Epidemic_Simulation
         }
 
         // Метод для обновления состояния главного меню
-        public bool Update(out bool exitRequested)
+        public void Update(GameTime gameTime, out bool requestStateChange, out bool exitRequested)
         {
-            exitRequested = false;              // Флаг для запроса выхода из игры
+            requestStateChange = false;  // Флаг для запроса изменения состояния
+            exitRequested = false;       // Флаг для запроса выхода из игры
             var mouseState = Mouse.GetState();  // Получаем текущее состояние мыши
 
             // Проверяем, нажата ли левая кнопка мыши
@@ -56,26 +57,25 @@ namespace Epidemic_Simulation
                 // Если нажата кнопка "Start"
                 if (startButtonRectangle.Contains(mouseState.Position))
                 {
-                    return true;    // Запускаем симуляцию
+                    requestStateChange = true;  // Запрашиваем переход к симуляции
                 }
                 // Если нажата кнопка "Exit"
                 else if (exitButtonRectangle.Contains(mouseState.Position))
                 {
-                    exitRequested = true;   // Запрашиваем выход из игры
+                    exitRequested = true;  // Запрашиваем выход из игры
                 }
             }
-            return false;   // Возвращаем false, если ничего не было нажато
         }
 
         // Метод для рисования главного меню
-        public void Draw(SpriteBatch _spriteBatch, GraphicsDeviceManager _graphics)
+        public void Draw(SpriteBatch spriteBatch, GraphicsDeviceManager graphics)
         {
             // Рисование фона
-            _spriteBatch.Draw(backgroundTexture, new Rectangle(0, 0, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight), Color.White);
+            spriteBatch.Draw(backgroundTexture, new Rectangle(0, 0, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight), Color.White);
 
             // Рисование кнопок
-            _spriteBatch.Draw(startButtonTexture, startButtonRectangle, Color.White);
-            _spriteBatch.Draw(exitButtonTexture, exitButtonRectangle, Color.White);
+            spriteBatch.Draw(startButtonTexture, startButtonRectangle, Color.White);
+            spriteBatch.Draw(exitButtonTexture, exitButtonRectangle, Color.White);
         }
     }
 }

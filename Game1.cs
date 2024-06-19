@@ -10,20 +10,10 @@ namespace Epidemic_Simulation
         private GraphicsDeviceManager _graphics;    // Менеджер графических устройств
         private SpriteBatch _spriteBatch;           // Пакет для рисования спрайтов
 
+        private IScreen currentScreen;              // Текущий экран (главное меню или симуляция)
         private MainMenu mainMenu;                  // Экземпляр класса MainMenu
         private Simulation simulation;              // Экземпляр класса Simulation
-
-        private Song menuTheme;                     // Фоновая музыка для меню
-
-        // Перечисление состояний игры
-        private enum GameState
-        {
-            MainMenu,    // Главное меню
-            Simulation   // Симуляция
-        }
-
-        // Текущее состояние игры, начальное состояние - главное меню
-        private GameState currentState = GameState.MainMenu;
+        private Song menuTheme;                     // Тема для меню
 
         // Конструктор класса Game1
         public Game1()
@@ -35,11 +25,12 @@ namespace Epidemic_Simulation
                 PreferredBackBufferHeight = 720     // Установка высоты окна
             };
 
-            //_graphics.IsFullScreen = true;
             // Установка корневого каталога для контента
             Content.RootDirectory = "Content";
             // Включение видимости курсора мыши
             IsMouseVisible = true;
+
+            //_graphics.IsFullScreen = true;
         }
 
         // Метод для инициализации игры
@@ -61,7 +52,10 @@ namespace Epidemic_Simulation
             // Создание и загрузка контента для симуляции
             simulation = new Simulation(GraphicsDevice, Content);
 
-            // Загрузка фоновой музыки
+            // Установка начального экрана
+            currentScreen = mainMenu;
+
+            // Загрузка и воспроизведение музыки
             menuTheme = Content.Load<Song>("MenuTheme");
             MediaPlayer.IsRepeating = true;  // Установка повтора музыки
             MediaPlayer.Volume = 0.05f;      // Установка громкости
@@ -75,32 +69,16 @@ namespace Epidemic_Simulation
             if (Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
-            // Обработка логики в зависимости от текущего состояния игры
-            switch (currentState)
+            // Обновление текущего экрана
+            currentScreen.Update(gameTime, out bool requestStateChange, out bool exitRequested);
+            if (exitRequested)
             {
-                // Обновление состояния главного меню
-                case GameState.MainMenu:
-                    bool exitRequested;
-                    // Если выбрана опция "Start", переходим в состояние симуляции
-                    if (mainMenu.Update(out exitRequested))
-                    {
-                        currentState = GameState.Simulation;
-                    }
-                    // Если выбрана опция "Exit", выходим из игры
-                    else if (exitRequested)
-                    {
-                        Exit();
-                    }
-                    break;
-                // Обновление состояния симуляции
-                case GameState.Simulation:
-                    bool backRequested;
-                    simulation.Update(gameTime, out backRequested);
-                    if(backRequested)
-                    {  
-                        currentState = GameState.MainMenu; 
-                    }
-                    break;
+                Exit();  // Выход из игры, если запрос на выход
+            }
+            else if (requestStateChange)
+            {
+                // Переход между главным меню и симуляцией
+                currentScreen = currentScreen == mainMenu ? (IScreen)simulation : (IScreen)mainMenu;
             }
 
             // Вызов базового метода обновления
@@ -110,32 +88,20 @@ namespace Epidemic_Simulation
         // Метод для рисования на экране
         protected override void Draw(GameTime gameTime)
         {
-            // Очистка экрана заданным цветом (CornflowerBlue)
+            // Очистка экрана заданным цветом (White)
             GraphicsDevice.Clear(Color.White);
 
             // Начало рисования спрайтов
             _spriteBatch.Begin();
 
-            // Рисование в зависимости от текущего состояния игры
-            switch (currentState)
-            {
-                // Рисование главного меню
-                case GameState.MainMenu:
-                    // Рисование главного меню с указанием размеров экрана
-                    mainMenu.Draw(_spriteBatch, _graphics);
-                    break;
-                // Рисование симуляции
-                case GameState.Simulation:
-                    // Вызов метода рисования симуляции
-                    simulation.Draw(_spriteBatch, _graphics);
-                    break;
-            }
+            // Рисование текущего экрана
+            currentScreen.Draw(_spriteBatch, _graphics);
 
             // Завершение рисования спрайтов
             _spriteBatch.End();
 
             // Вызов базового метода рисования
             base.Draw(gameTime);
-        }        
+        }
     }
 }

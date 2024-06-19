@@ -1,5 +1,5 @@
-﻿using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework.Content;
@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace Epidemic_Simulation
 {
-    public class Simulation
+    public class Simulation : IScreen
     {
         private Texture2D personTexture;                    // Текстура для отображения объекта Person
         private Texture2D backgroundSimulationTexture;      // Текстура для фона симуляции
@@ -154,9 +154,11 @@ namespace Epidemic_Simulation
         }
 
         // Метод для обновления состояния симуляции
-        public void Update(GameTime gameTime, out bool backRequested)
+        public void Update(GameTime gameTime, out bool requestStateChange, out bool exitRequested)
         {
-            backRequested = false;  // Флаг для запроса выхода в главное меню
+            requestStateChange = false;  // Флаг для запроса выхода в главное меню
+            exitRequested = false;       // Симуляция не требует выхода из игры
+
             // Обновление настроек симуляции с использованием ползунков
             UpdateSimulationSettings();
             // Если симуляция не запущена
@@ -185,7 +187,7 @@ namespace Epidemic_Simulation
             // Проверка, нажата ли кнопка "Back" для выхода в главное меню
             if (Mouse.GetState().LeftButton == ButtonState.Pressed && simulationBackButtonRectangle.Contains(Mouse.GetState().Position))
             {
-                backRequested = true;           // Запрашиваем выход в главное меню
+                requestStateChange = true;      // Запрашиваем выход в главное меню
                 simulationStarted = false;
                 ResetSimulation();              // Сброс симуляции
             }
@@ -393,19 +395,19 @@ namespace Epidemic_Simulation
         }
 
         // Метод для рисования симуляции на экране
-        public void Draw(SpriteBatch _spriteBatch, GraphicsDeviceManager _graphics)
+        public void Draw(SpriteBatch spriteBatch, GraphicsDeviceManager graphics)
         {
             // Рисование фона симуляции
-            _spriteBatch.Draw(backgroundSimulationTexture, new Rectangle(0, 0, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight), Color.White);
+            spriteBatch.Draw(backgroundSimulationTexture, new Rectangle(0, 0, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight), Color.White);
 
             // Рисование прямоугольника для области симуляции
-            _spriteBatch.Draw(rectangleTexture, simulationArea, Color.White);
+            spriteBatch.Draw(rectangleTexture, simulationArea, Color.White);
 
             // Рисование прямоугольника
-            _spriteBatch.Draw(countPeopleRectangleTexture, countPeopleRectangle, Color.White);
+            spriteBatch.Draw(countPeopleRectangleTexture, countPeopleRectangle, Color.White);
 
             // Рисование прямоугольника позади графика
-            _spriteBatch.Draw(graphBackgroundTexture, graphRectangle, Color.White);
+            spriteBatch.Draw(graphBackgroundTexture, graphRectangle, Color.White);
 
             // Определение нужно ли рисовать радиус
             bool drawRadius = infectionRadiusSlider.IsHovered() || infectionRadiusSlider.IsDragging();
@@ -419,7 +421,7 @@ namespace Epidemic_Simulation
                     Color color = Color.Black;
 
                     // Рисование мертвого объекта Person с заданной текстурой и цветом
-                    _spriteBatch.Draw(
+                    spriteBatch.Draw(
                         personTexture,             // Текстура для рисования
                         person.Position,           // Позиция объекта
                         null,                      // Область текстуры для рисования (null - вся текстура)
@@ -442,7 +444,7 @@ namespace Epidemic_Simulation
                     if (drawRadius)
                     {
                         float radius = infectionRadiusSlider.GetValue();
-                        _spriteBatch.Draw(
+                        spriteBatch.Draw(
                             circleTexture,
                             new Vector2(person.Position.X - radius, person.Position.Y - radius),
                             null,
@@ -465,7 +467,7 @@ namespace Epidemic_Simulation
                     };
 
                     // Рисование живого объекта Person с заданной текстурой и цветом
-                    _spriteBatch.Draw(
+                    spriteBatch.Draw(
                         personTexture,             // Текстура для рисования
                         person.Position,           // Позиция объекта
                         null,                      // Область текстуры для рисования (null - вся текстура)
@@ -480,37 +482,37 @@ namespace Epidemic_Simulation
             }
 
             // Рисование количества пациентов
-            DrawPatientCount(_spriteBatch, "Recovered: ", people.Count(p => p.State == HealthState.Recovered), new Vector2(30, 615), Color.Purple);
-            DrawPatientCount(_spriteBatch, "Healthy: ", people.Count(p => p.State == HealthState.Healthy), new Vector2(30, 635), Color.Blue);
-            DrawPatientCount(_spriteBatch, "Infected: ", people.Count(p => p.State == HealthState.Infected || p.State == HealthState.Carrier), new Vector2(30, 655), Color.Orange);
-            DrawPatientCount(_spriteBatch, "Died: ", people.Count(p => p.State == HealthState.Dead), new Vector2(30, 675), Color.Black);
+            DrawPatientCount(spriteBatch, "Recovered: ", people.Count(p => p.State == HealthState.Recovered), new Vector2(30, 615), Color.Purple);
+            DrawPatientCount(spriteBatch, "Healthy: ", people.Count(p => p.State == HealthState.Healthy), new Vector2(30, 635), Color.Blue);
+            DrawPatientCount(spriteBatch, "Infected: ", people.Count(p => p.State == HealthState.Infected || p.State == HealthState.Carrier), new Vector2(30, 655), Color.Orange);
+            DrawPatientCount(spriteBatch, "Died: ", people.Count(p => p.State == HealthState.Dead), new Vector2(30, 675), Color.Black);
 
             // Рисование ползунков для настройки параметров симуляции
-            infectionChanceSlider.Draw(_spriteBatch);
-            deathChanceSlider.Draw(_spriteBatch);
-            infectionRadiusSlider.Draw(_spriteBatch);
-            speedSlider.Draw(_spriteBatch);
-            incubationPeriodSlider.Draw(_spriteBatch);
-            infectionPeriodSlider.Draw(_spriteBatch);
-            numberOfPeopleSlider.Draw(_spriteBatch);
+            infectionChanceSlider.Draw(spriteBatch);
+            deathChanceSlider.Draw(spriteBatch);
+            infectionRadiusSlider.Draw(spriteBatch);
+            speedSlider.Draw(spriteBatch);
+            incubationPeriodSlider.Draw(spriteBatch);
+            infectionPeriodSlider.Draw(spriteBatch);
+            numberOfPeopleSlider.Draw(spriteBatch);
 
             // Рисование кнопок "Start" и "Reset" в окне симуляции
-            _spriteBatch.Draw(simulationStartButtonTexture, simulationStartButtonRectangle, Color.White);
-            _spriteBatch.Draw(simulationResetButtonTexture, simulationResetButtonRectangle, Color.White);
-            _spriteBatch.Draw(simulationBackButtonTexture, simulationBackButtonRectangle, Color.White);
+            spriteBatch.Draw(simulationStartButtonTexture, simulationStartButtonRectangle, Color.White);
+            spriteBatch.Draw(simulationResetButtonTexture, simulationResetButtonRectangle, Color.White);
+            spriteBatch.Draw(simulationBackButtonTexture, simulationBackButtonRectangle, Color.White);
 
             // Отрисовка графика
-            graph.Draw(_spriteBatch);
+            graph.Draw(spriteBatch);
         }
 
         // Метод для рисования количества пациентов
-        private void DrawPatientCount(SpriteBatch _spriteBatch, string label, int count, Vector2 position, Color color)
+        private void DrawPatientCount(SpriteBatch spriteBatch, string label, int count, Vector2 position, Color color)
         {
             // Рисуем метку (label) черным цветом
-            _spriteBatch.DrawString(font, label, position, Color.Black);
+            spriteBatch.DrawString(font, label, position, Color.Black);
 
             // Рисуем количество пациентов рядом с меткой
-            _spriteBatch.DrawString(font, count.ToString(),
+            spriteBatch.DrawString(font, count.ToString(),
                 new Vector2(position.X + font.MeasureString(label).X, position.Y), // Позиция для числа пациентов рядом с меткой
                 color); // Цвет числа пациентов
         }
