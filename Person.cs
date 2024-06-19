@@ -194,13 +194,6 @@ namespace Epidemic_Simulation
             otherPerson.Position -= collisionNormal * overlap;
         }
 
-        // Метод для изменения направления движения
-        public void ChangeDirection(Vector2 newDirection)
-        {
-            direction = newDirection;   // Устанавливаем новое направление движения
-            direction.Normalize();      // Нормализуем вектор направления
-        }
-
         // Метод для установки новой скорости
         public void SetSpeed(float newSpeed)
         {

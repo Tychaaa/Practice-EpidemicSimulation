@@ -92,6 +92,12 @@
 /processorParam:TextureFormat=Color
 /build:graphBackgroundTexture.png
 
+#begin MenuTheme.mp3
+/importer:Mp3Importer
+/processor:SongProcessor
+/processorParam:Quality=Best
+/build:MenuTheme.mp3
+
 #begin person.png
 /importer:TextureImporter
 /processor:TextureProcessor

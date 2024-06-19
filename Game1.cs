@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Media;
 
 namespace Epidemic_Simulation
 {
@@ -11,6 +12,8 @@ namespace Epidemic_Simulation
 
         private MainMenu mainMenu;                  // Экземпляр класса MainMenu
         private Simulation simulation;              // Экземпляр класса Simulation
+
+        private Song menuTheme;                     // Фоновая музыка для меню
 
         // Перечисление состояний игры
         private enum GameState
@@ -57,6 +60,12 @@ namespace Epidemic_Simulation
 
             // Создание и загрузка контента для симуляции
             simulation = new Simulation(GraphicsDevice, Content);
+
+            // Загрузка фоновой музыки
+            menuTheme = Content.Load<Song>("MenuTheme");
+            MediaPlayer.IsRepeating = true;  // Установка повтора музыки
+            MediaPlayer.Volume = 0.05f;      // Установка громкости
+            MediaPlayer.Play(menuTheme);     // Воспроизведение фоновой музыки
         }
 
         // Метод для обновления состояния игры

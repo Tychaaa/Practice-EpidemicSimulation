@@ -15,7 +15,7 @@ namespace Epidemic_Simulation
         private Texture2D backgroundSimulationTexture;      // Текстура для фона симуляции
         private Texture2D simulationStartButtonTexture;     // Текстура для кнопки "Start" в окне симуляции
         private Texture2D simulationResetButtonTexture;     // Текстура для кнопки "Reset" в окне симуляции
-        private Texture2D simulationBackButtonTexture;     // Текстура для кнопки "Reset" в окне симуляции
+        private Texture2D simulationBackButtonTexture;      // Текстура для кнопки "Reset" в окне симуляции
         private Texture2D rectangleTexture;                 // Текстура для прямоугольника
         private Texture2D trackTexture;                     // Текстура для дорожки ползунка
         private Texture2D thumbTexture;                     // Текстура для ползунка
