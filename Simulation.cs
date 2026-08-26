@@ -441,7 +441,7 @@ namespace Epidemic_Simulation
                 if (person.State != HealthState.Dead)
                 {
                     // Рисование радиуса заражения, если нужно
-                    if (drawRadius)
+                    if (drawRadius && (person.State == HealthState.Infected || person.State == HealthState.Carrier))
                     {
                         float radius = infectionRadiusSlider.GetValue();
                         spriteBatch.Draw(
